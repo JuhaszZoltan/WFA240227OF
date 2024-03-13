@@ -18,26 +18,59 @@ namespace WFA240227OF
 
             btnInsert.Click += BtnInsert_Click;
             btnModifies.Click += BtnModifies_Click;
+            btnDelete.Click += BtnDelete_Click;
+        }
+
+        private void BtnDelete_Click(object? sender, EventArgs e)
+        {
+            using MySqlConnection connection = new(Program.ConnectionString);
+            connection.Open();
+
+            MySqlDataAdapter adapter = new()
+            {
+                DeleteCommand = new(
+                    $"DELETE FROM Movies WHERE ID = {id};",
+                    connection),
+            };
+
+            DialogResult result = MessageBox.Show(
+                caption: "DELETE WARNING",
+                text: "Are you sure you want to delete this movie?\n" +
+                $"({dgv.SelectedRows[0].Cells[1].Value})",
+                buttons: MessageBoxButtons.YesNo,
+                icon: MessageBoxIcon.Warning);
+
+            if (result == DialogResult.Yes && id != 0)
+                adapter.DeleteCommand.ExecuteNonQuery();
+            MainForm_Load(this, e);
         }
 
         private void Dgv_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
+            if (e.RowIndex < 0) return;
             id = (int)dgv[columnIndex: 0, rowIndex: e.RowIndex].Value;
         }
 
         private void BtnModifies_Click(object? sender, EventArgs e)
         {
+            if (dgv.SelectedRows.Count == 0) return;
+
+
             //a modifies-nek kell az ID, ezért "rejtett oszlop"ként betesszük a táblázatba
             _ = new MovieForm(id: id).ShowDialog();
+            MainForm_Load(this, e);
         }
 
         private void BtnInsert_Click(object? sender, EventArgs e)
         {
             _ = new MovieForm().ShowDialog();
+            MainForm_Load(this, e);
         }
 
         private void MainForm_Load(object? sender, EventArgs e)
         {
+            dgv.Rows.Clear();
+
             // def. az adatbázis kapcsolatot:
             // (mivel IDisposable, ezért használunk elõtte using-ot)
 
@@ -96,6 +129,8 @@ namespace WFA240227OF
             // hibaüzenet, ami azt takarja, hogy még nincs megírva ez a függvény
             // (amikor megírjuk, "célszerû" törölni)
             // throw new NotImplementedException();
+
+            dgv.ClearSelection();
         }
     }
 }

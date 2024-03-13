@@ -10,6 +10,8 @@ namespace WFA240227OF
         {
             ID = id;
             InitializeComponent();
+            btnAdapter.Text = id == 0 ? "ADD NEW MOVIE" : "UPDATE MOVIE DATA";
+
             this.Load += MovieForm_Load;
             cbxGenres.SelectedIndexChanged += CbxGenres_SelectedIndexChanged;
             btnAdapter.Click += BtnAdapter_Click;
@@ -24,7 +26,6 @@ namespace WFA240227OF
                 connection).ExecuteReader();
             reader.Read();
             selectedGenreID = (int)reader["ID"];
-            MessageBox.Show($"{selectedGenreID}");
         }
 
         private void MovieForm_Load(object? sender, EventArgs e)
@@ -57,22 +58,48 @@ namespace WFA240227OF
             MySqlDataReader reader = new MySqlCommand(
                 "SELECT * FROM Genres ORDER BY Name;",
                 connection).ExecuteReader();
-            while (reader.Read())
-            {
-                cbxGenres.Items.Add(reader["Name"]);
-            }
+            while (reader.Read()) cbxGenres.Items.Add(reader["Name"]);
         }
 
         private void BtnAdapter_Click(object? sender, EventArgs e)
         {
+            using MySqlConnection connection = new(Program.ConnectionString);
+            connection.Open();
+            MySqlDataAdapter adapter = new();
+
+            string msbText = string.Empty;
+
             if (ID == 0)
             {
-                //INSERT
+                adapter.InsertCommand = new(
+                    "INSERT INTO Movies (Title, ReleaseYear, GenreID) VALUES " +
+                    $"('{txbTitle.Text}', {nudYear.Value}, {selectedGenreID});",
+                    connection);
+                adapter.InsertCommand.ExecuteNonQuery();
+
+                msbText = $"new movie added successfully!";
             }
             else
             {
-                //UPDATE
+                adapter.UpdateCommand = new(
+                    "UPDATE Movies SET " +
+                    $"Title = '{txbTitle.Text}', " +
+                    $"ReleaseYear = {nudYear.Value}, " +
+                    $"GenreID = {selectedGenreID} " +
+                    $"WHERE ID = {ID};",
+                    connection);
+                adapter.UpdateCommand.ExecuteNonQuery();
+
+                msbText = $"movie data successfully modified!";
             }
+
+            _ = MessageBox.Show(
+                caption: "SUCCESS!",
+                text: msbText,
+                icon: MessageBoxIcon.Information,
+                buttons: MessageBoxButtons.OK);
+
+            this.Close();
         }
     }
 }
